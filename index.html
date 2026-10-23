@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>十二長生極簡背誦卡</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"PingFang TC"', '"Heiti TC"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col justify-between antialiased selection:bg-amber-500/30">
+
+    <!-- Top Navigation Header -->
+    <header class="px-4 py-3 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-20 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <span class="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center">生</span>
+            <h1 class="font-bold text-base text-slate-100 tracking-wide">十二長生速記卡</h1>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Table Toggle Button -->
+            <button onclick="toggleTableModal()" class="px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold active:scale-95 transition flex items-center gap-1">
+                <span>📋</span>
+                <span>極簡對照表</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-lg w-full mx-auto px-4 py-4 flex flex-col justify-between">
+        
+        <!-- Controls & Filters Bar -->
+        <div class="space-y-3 mb-3">
+            <!-- Stem Selector & Stats -->
+            <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl shadow-sm">
+                <!-- Dropdown for Stem Filtering -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-400 font-medium">篩選天干:</span>
+                    <select id="stemFilterSelect" onchange="onFilterChange()" class="bg-slate-800 text-amber-400 font-bold text-sm px-3 py-1.5 rounded-xl border border-slate-700 focus:outline-none">
+                        <option value="ALL">全部十天干 (混合)</option>
+                        <option value="甲">甲木 (陽木)</option>
+                        <option value="乙">乙木 (陰木)</option>
+                        <option value="丙">丙火 (陽火)</option>
+                        <option value="丁">丁火 (陰火)</option>
+                        <option value="戊">戊土 (陽土)</option>
+                        <option value="己">己土 (陰土)</option>
+                        <option value="庚">庚金 (陽金)</option>
+                        <option value="辛">辛金 (陰金)</option>
+                        <option value="壬">壬水 (陽水)</option>
+                        <option value="癸">癸水 (陰水)</option>
+                    </select>
+                </div>
+
+                <!-- Practice Count Badge -->
+                <div class="bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-xl text-right">
+                    <span class="text-[10px] text-amber-400/80 block leading-tight font-medium">已刷題</span>
+                    <span id="practiceCounter" class="text-sm font-extrabold text-amber-400 leading-tight">0</span>
+                </div>
+            </div>
+
+            <!-- Quiz Mode Toggle Segmented Control -->
+            <div class="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs text-center font-medium">
+                <button id="modeBtnAll" onclick="setQuizMode('MIXED')" class="py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition">混合模式</button>
+                <button id="modeBtnA" onclick="setQuizMode('A')" class="py-1.5 rounded-lg text-slate-400 transition">天干地支➔長生</button>
+                <button id="modeBtnB" onclick="setQuizMode('B')" class="py-1.5 rounded-lg text-slate-400 transition">天干長生➔地支</button>
+            </div>
+        </div>
+
+        <!-- Central Flashcard Area -->
+        <div class="flex-1 flex flex-col justify-center my-2">
+            
+            <!-- Question Card -->
+            <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col justify-between min-h-[300px] text-center relative overflow-hidden">
+                
+                <!-- Card Header Tag -->
+                <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                    <span id="quizModeBadge" class="px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 font-semibold border border-slate-700">
+                        測驗題
+                    </span>
+                    <span id="stemRuleBadge" class="text-[11px] text-slate-400 font-mono">
+                        甲木 · 順行
+                    </span>
+                </div>
+
+                <!-- Main Question Text Display -->
+                <div class="my-auto py-4">
+                    <p id="questionPrompt" class="text-slate-400 text-sm mb-2">請思考以下對照：</p>
+                    <h2 id="questionText" class="text-2xl sm:text-3xl font-extrabold text-slate-100 leading-relaxed tracking-wide">
+                        【甲木】遇到【亥】地支是？
+                    </h2>
+                </div>
+
+                <!-- Answer Area (Initially Hidden or Tap to Reveal) -->
+                <div id="answerContainer" class="w-full">
+                    <!-- Tap to Reveal Overlay Button -->
+                    <button id="revealBtn" onclick="revealAnswer()" class="w-full py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-lg shadow-lg active:scale-98 transition flex items-center justify-center space-x-2">
+                        <span>點擊查看答案</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </button>
+
+                    <!-- Answer Result Box (Revealed) -->
+                    <div id="resultBox" class="hidden bg-slate-950 border-2 border-amber-500/60 rounded-2xl p-4 text-center space-y-2 animate-fade-in">
+                        <div class="text-xs text-amber-400/80 font-bold uppercase tracking-widest">正確答案</div>
+                        <div id="answerTitle" class="text-4xl font-black text-amber-400 tracking-wider">
+                            長生
+                        </div>
+                        <p id="answerDesc" class="text-xs text-slate-300 leading-relaxed font-sans pt-1">
+                            甲木長生於亥，陽木順行。亥(長生) ➔ 子(沐浴) ➔ 丑(冠帶)
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Bottom Action Bar (Next Question) -->
+        <div class="pt-3 pb-2">
+            <button id="nextBtn" onclick="nextQuestion()" class="w-full py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-base border border-slate-700 active:scale-98 transition shadow-md flex items-center justify-center space-x-2">
+                <span>下一題</span>
+                <span class="text-amber-400 text-xl">➔</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Collapsible Reference Table Modal -->
+    <div id="tableModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex flex-col justify-end sm:justify-center p-0 sm:p-4 transition-opacity">
+        <div class="bg-slate-900 border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col w-full max-w-2xl mx-auto overflow-hidden shadow-2xl">
+            
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg">📋</span>
+                    <h3 class="font-bold text-base text-slate-100">十天干十二長生總對照表</h3>
+                </div>
+                <button onclick="toggleTableModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-bold text-lg active:scale-90">✕</button>
+            </div>
+
+            <!-- Modal Content (Scrollable Table) -->
+            <div class="p-3 overflow-x-auto overflow-y-auto no-scrollbar flex-1">
+                <table class="w-full text-center text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800 text-amber-400">
+                            <th class="p-2 border border-slate-700 sticky left-0 bg-slate-800">天干</th>
+                            <th class="p-1 border border-slate-700">子</th>
+                            <th class="p-1 border border-slate-700">丑</th>
+                            <th class="p-1 border border-slate-700">寅</th>
+                            <th class="p-1 border border-slate-700">卯</th>
+                            <th class="p-1 border border-slate-700">辰</th>
+                            <th class="p-1 border border-slate-700">巳</th>
+                            <th class="p-1 border border-slate-700">午</th>
+                            <th class="p-1 border border-slate-700">未</th>
+                            <th class="p-1 border border-slate-700">申</th>
+                            <th class="p-1 border border-slate-700">酉</th>
+                            <th class="p-1 border border-slate-700">戌</th>
+                            <th class="p-1 border border-slate-700">亥</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+
+                <!-- Rules Quick Summary -->
+                <div class="mt-4 p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <div class="font-bold text-amber-400 mb-1">💡 掌訣記憶速記口訣：</div>
+                    <div>• <b class="text-red-400">甲</b>生亥，<b class="text-red-400">丙戊</b>生寅，<b class="text-red-400">庚</b>生巳，<b class="text-red-400">壬</b>生申（陽干順行）</div>
+                    <div>• <b class="text-blue-400">乙</b>生午，<b class="text-blue-400">丁己</b>生酉，<b class="text-blue-400">辛</b>生子，<b class="text-blue-400">癸</b>生卯（陰干逆行）</div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 border-t border-slate-800 text-center bg-slate-900">
+                <button onclick="toggleTableModal()" class="w-full py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm">關閉對照表</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Data Definitions
+        const STEMS = [
+            { id: '甲', name: '甲木', polarity: '陽', element: '木', changsheng: '亥', dir: 1 },
+            { id: '乙', name: '乙木', polarity: '陰', element: '木', changsheng: '午', dir: -1 },
+            { id: '丙', name: '丙火', polarity: '陽', element: '火', changsheng: '寅', dir: 1 },
+            { id: '丁', name: '丁火', polarity: '陰', element: '火', changsheng: '酉', dir: -1 },
+            { id: '戊', name: '戊土', polarity: '陽', element: '土', changsheng: '寅', dir: 1 },
+            { id: '己', name: '己土', polarity: '陰', element: '土', changsheng: '酉', dir: -1 },
+            { id: '庚', name: '庚金', polarity: '陽', element: '金', changsheng: '巳', dir: 1 },
+            { id: '辛', name: '辛金', polarity: '陰', element: '金', changsheng: '子', dir: -1 },
+            { id: '壬', name: '壬水', polarity: '陽', element: '水', changsheng: '申', dir: 1 },
+            { id: '癸', name: '癸水', polarity: '陰', element: '水', changsheng: '卯', dir: -1 }
+        ];
+
+        const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+        const STAGES = [
+            { name: '長生', category: 'strong' },
+            { name: '沐浴', category: 'medium' },
+            { name: '冠帶', category: 'strong' },
+            { name: '臨官', category: 'strong' },
+            { name: '帝旺', category: 'strong' },
+            { name: '衰', category: 'medium' },
+            { name: '病', category: 'weak' },
+            { name: '死', category: 'weak' },
+            { name: '墓', category: 'weak' },
+            { name: '絕', category: 'weak' },
+            { name: '胎', category: 'medium' },
+            { name: '養', category: 'medium' }
+        ];
+
+        // State variables
+        let practiceCount = 0;
+        let selectedFilterStem = 'ALL';
+        let currentQuizMode = 'MIXED'; // 'MIXED', 'A', 'B'
+        let currentQuestion = null;
+        let isRevealed = false;
+
+        // Bazi Core Calculation Formula
+        function getStageIndex(stem, branch) {
+            const csIdx = BRANCHES.indexOf(stem.changsheng);
+            const bIdx = BRANCHES.indexOf(branch);
+            if (stem.dir === 1) {
+                return (bIdx - csIdx + 12) % 12;
+            } else {
+                return (csIdx - bIdx + 12) % 12;
+            }
+        }
+
+        function getBranchFromStageIndex(stem, stageIdx) {
+            const csIdx = BRANCHES.indexOf(stem.changsheng);
+            if (stem.dir === 1) {
+                return BRANCHES[(csIdx + stageIdx) % 12];
+            } else {
+                return BRANCHES[(csIdx - stageIdx + 12) % 12];
+            }
+        }
+
+        // App Initialization
+        window.onload = function() {
+            renderMatrixTable();
+            nextQuestion();
+        };
+
+        // Quiz Logic
+        function nextQuestion() {
+            isRevealed = false;
+            document.getElementById('revealBtn').classList.remove('hidden');
+            document.getElementById('resultBox').classList.add('hidden');
+
+            // Pick Stem according to filter
+            let stem;
+            if (selectedFilterStem === 'ALL') {
+                stem = STEMS[Math.floor(Math.random() * STEMS.length)];
+            } else {
+                stem = STEMS.find(s => s.id === selectedFilterStem) || STEMS[0];
+            }
+
+            // Decide Question Sub-mode (A or B)
+            let mode = currentQuizMode;
+            if (mode === 'MIXED') {
+                mode = Math.random() > 0.5 ? 'A' : 'B';
+            }
+
+            if (mode === 'A') {
+                // Mode A: Stem + Branch -> Stage
+                const branch = BRANCHES[Math.floor(Math.random() * BRANCHES.length)];
+                const stageIdx = getStageIndex(stem, branch);
+                const stage = STAGES[stageIdx];
+
+                currentQuestion = {
+                    prompt: '請回答對應的十二長生階段：',
+                    title: `【${stem.name}】遇到【${branch}】是？`,
+                    answer: stage.name,
+                    category: stage.category,
+                    desc: `${stem.name}長生於【${stem.changsheng}】（${stem.polarity}${stem.dir === 1 ? '順行' : '逆行'}）。推算至【${branch}】地支即為【${stage.name}】。`,
+                    badge: '地支 ➔ 長生',
+                    rule: `${stem.name} · ${stem.polarity}${stem.dir === 1 ? '順行' : '逆行'}`
+                };
+            } else {
+                // Mode B: Stem + Stage -> Branch
+                const stageIdx = Math.floor(Math.random() * STAGES.length);
+                const stage = STAGES[stageIdx];
+                const targetBranch = getBranchFromStageIndex(stem, stageIdx);
+
+                currentQuestion = {
+                    prompt: '請回答對應的地支位置：',
+                    title: `【${stem.name}】的【${stage.name}】位在哪？`,
+                    answer: targetBranch,
+                    category: stage.category,
+                    desc: `${stem.name}長生於【${stem.changsheng}】。沿地支${stem.dir === 1 ? '順時針' : '逆時針'}推算至第 ${stageIdx + 1} 階【${stage.name}】位在【${targetBranch}】。`,
+                    badge: '長生 ➔ 地支',
+                    rule: `${stem.name} · ${stem.polarity}${stem.dir === 1 ? '順行' : '逆行'}`
+                };
+            }
+
+            // Update UI Question
+            document.getElementById('questionPrompt').innerText = currentQuestion.prompt;
+            document.getElementById('questionText').innerText = currentQuestion.title;
+            document.getElementById('quizModeBadge').innerText = currentQuestion.badge;
+            document.getElementById('stemRuleBadge').innerText = currentQuestion.rule;
+        }
+
+        function revealAnswer() {
+            if (isRevealed) return;
+            isRevealed = true;
+
+            // Increment Practice Count
+            practiceCount++;
+            document.getElementById('practiceCounter').innerText = practiceCount;
+
+            // Render Answer
+            document.getElementById('revealBtn').classList.add('hidden');
+            document.getElementById('resultBox').classList.remove('hidden');
+
+            const answerTitle = document.getElementById('answerTitle');
+            answerTitle.innerText = currentQuestion.answer;
+
+            // Apply Dynamic Color Highlight based on energy stage
+            if (currentQuestion.category === 'strong') {
+                answerTitle.className = 'text-4xl font-black text-emerald-400 tracking-wider';
+            } else if (currentQuestion.category === 'medium') {
+                answerTitle.className = 'text-4xl font-black text-amber-400 tracking-wider';
+            } else {
+                answerTitle.className = 'text-4xl font-black text-slate-300 tracking-wider';
+            }
+
+            document.getElementById('answerDesc').innerText = currentQuestion.desc;
+        }
+
+        function onFilterChange() {
+            selectedFilterStem = document.getElementById('stemFilterSelect').value;
+            nextQuestion();
+        }
+
+        function setQuizMode(mode) {
+            currentQuizMode = mode;
+            
+            const btnAll = document.getElementById('modeBtnAll');
+            const btnA = document.getElementById('modeBtnA');
+            const btnB = document.getElementById('modeBtnB');
+
+            [btnAll, btnA, btnB].forEach(b => {
+                b.className = 'py-1.5 rounded-lg text-slate-400 transition';
+            });
+
+            if (mode === 'MIXED') btnAll.className = 'py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition';
+            if (mode === 'A') btnA.className = 'py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition';
+            if (mode === 'B') btnB.className = 'py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold transition';
+
+            nextQuestion();
+        }
+
+        function toggleTableModal() {
+            const modal = document.getElementById('tableModal');
+            modal.classList.toggle('hidden');
+        }
+
+        // Build Fast Lookup Table HTML
+        function renderMatrixTable() {
+            const tbody = document.getElementById('matrixTableBody');
+            let html = '';
+
+            STEMS.forEach(stem => {
+                html += `<tr class="border-b border-slate-800">`;
+                html += `<td class="p-1.5 font-bold text-amber-400 border-r border-slate-800 bg-slate-900/90 sticky left-0">${stem.id}</td>`;
+                
+                BRANCHES.forEach(branch => {
+                    const stageIdx = getStageIndex(stem, branch);
+                    const stage = STAGES[stageIdx];
+                    
+                    let cellClass = 'text-slate-400';
+                    if (stage.name === '帝旺' || stage.name === '長生') {
+                        cellClass = 'text-amber-400 font-extrabold bg-amber-500/10';
+                    } else if (stage.name === '臨官' || stage.name === '冠帶') {
+                        cellClass = 'text-emerald-400 font-bold';
+                    }
+
+                    html += `<td class="p-1 border-r border-slate-800/50 ${cellClass}">${stage.name}</td>`;
+                });
+
+                html += `</tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
